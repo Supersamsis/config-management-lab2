@@ -2,6 +2,7 @@
 import json
 from src.config import parse_args
 from src.graph import build_graph, parse_test_graph
+from src.graph import build_graph, parse_test_graph, find_reverse_dependencies
 
 
 def print_tree(tree: dict, indent: int = 0) -> None:
@@ -48,6 +49,16 @@ def main() -> None:
 
     print("\nГраф зависимостей:")
     print_tree(tree)
+        # ... (после print_tree(tree)) ...
+
+    if args.reverse:
+        print(f"\nОбратные зависимости для {args.reverse}:")
+        rev_deps = find_reverse_dependencies(tree, args.reverse)
+        if not rev_deps:
+            print("  Не найдено.")
+        else:
+            for dep in rev_deps:
+                print(f"  - {dep}")
     
     # Вывод в формате JSON (для проверки структуры)
     # print(json.dumps(tree, indent=2))

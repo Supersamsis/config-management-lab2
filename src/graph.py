@@ -54,3 +54,26 @@ def build_graph(
 
     visited.remove(package)  # Возвращаем для других веток
     return children  # <--- ВАЖНО: возвращаем только детей, без самого пакета
+def find_reverse_dependencies(tree: dict, target: str) -> List[str]:
+    """Находит все пакеты, которые зависят от target (прямо или косвенно).
+    
+    Args:
+        tree: дерево зависимостей.
+        target: имя искомого пакета.
+        
+    Returns:
+        Список имен пакетов-родителей.
+    """
+    result = set()
+
+    def dfs(node: dict, current_path: list) -> None:
+        for pkg, children in node.items():
+            if pkg == target and current_path:
+                # Если нашли target, добавляем всех его предков
+                result.update(current_path)
+            
+            if isinstance(children, dict):
+                dfs(children, current_path + [pkg])
+
+    dfs(tree, [])
+    return sorted(list(result))
