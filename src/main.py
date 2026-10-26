@@ -3,6 +3,7 @@ import json
 from src.config import parse_args
 from src.graph import build_graph, parse_test_graph
 from src.graph import build_graph, parse_test_graph, find_reverse_dependencies
+from src.visualizer import to_dot, render_image
 
 
 def print_tree(tree: dict, indent: int = 0) -> None:
@@ -48,7 +49,23 @@ def main() -> None:
     tree = {args.package: build_graph(args.package, test_graph, args.filter)}
 
     print("\nГраф зависимостей:")
-    print_tree(tree)
+        # Вывод в формате ASCII-дерева (только если передан флаг)
+    if args.ascii_tree:
+        print("\nГраф зависимостей (ASCII):")
+        print_tree(tree)
+        
+    # Вывод в формате Graphviz DOT
+    dot_code = to_dot(tree)
+    print("\nТекстовое представление графа (Graphviz DOT):")
+    print(dot_code)
+    
+    # Генерация и открытие картинки
+    print("\nГенерация изображения графа...")
+    try:
+        render_image(tree, filename="dependency_graph")
+        print("Изображение сохранено в файл 'dependency_graph.png' и открыто.")
+    except Exception as e:
+        print(f"Ошибка при создании изображения (проверьте, установлен ли Graphviz): {e}")
         # ... (после print_tree(tree)) ...
 
     if args.reverse:
