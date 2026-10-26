@@ -35,4 +35,8 @@ def parse_args() -> argparse.Namespace:
         "--filter", type=str, default=None,
         help="Подстрока для фильтрации пакетов",
     )
+    parser.add_argument(
+        "--reverse", type=str, default=None,
+        help="Найти обратные зависимости для указанного пакета",
+    )
     return parser.parse_args()
