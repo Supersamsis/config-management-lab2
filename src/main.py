@@ -1,6 +1,20 @@
 """Точка входа программы."""
+import json
 from src.config import parse_args
-from src.npm_client import NpmError, get_direct_dependencies
+from src.graph import build_graph, parse_test_graph
+
+
+def print_tree(tree: dict, indent: int = 0) -> None:
+    """Печатает дерево зависимостей."""
+    for pkg, children in tree.items():
+        if pkg == "__cycle__":
+            print("  " * indent + f"[Цикл: {children}]")
+        elif pkg == "__filtered__":
+            print("  " * indent + f"[Отфильтровано: {children}]")
+        else:
+            print("  " * indent + f"- {pkg}")
+            if children:
+                print_tree(children, indent + 1)
 
 
 def main() -> None:
@@ -15,20 +29,28 @@ def main() -> None:
     print(f"  ASCII-tree: {args.ascii_tree}")
     print(f"  Фильтр:     {args.filter}")
 
-    print("\nСбор данных из npm...")
-    try:
-        deps = get_direct_dependencies(args.package, args.version)
-    except NpmError as error:
-        print(f"Ошибка: {error}")
-        return
+    test_graph = None
+    if args.test_mode:
+        if not args.repo:
+            print("Ошибка: В тестовом режиме нужно указать --repo с путем к файлу.")
+            return
+        try:
+            test_graph = parse_test_graph(args.repo)
+            print(f"\nТестовый граф загружен из {args.repo}")
+        except FileNotFoundError:
+            print(f"Ошибка: Файл {args.repo} не найден.")
+            return
+    else:
+        print(f"\nСбор данных из npm для {args.package}...")
 
-    if not deps:
-        print(f"У пакета {args.package}@{args.version} нет зависимостей.")
-        return
+        # Строим граф (оборачиваем в словарь с корневым пакетом)
+    tree = {args.package: build_graph(args.package, test_graph, args.filter)}
 
-    print(f"\nПрямые зависимости {args.package}@{args.version}:")
-    for name, ver in sorted(deps.items()):
-        print(f"  - {name}: {ver}")
+    print("\nГраф зависимостей:")
+    print_tree(tree)
+    
+    # Вывод в формате JSON (для проверки структуры)
+    # print(json.dumps(tree, indent=2))
 
 
 if __name__ == "__main__":
