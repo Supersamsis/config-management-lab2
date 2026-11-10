@@ -12,7 +12,9 @@ def parse_test_graph(path: str) -> Dict[str, List[str]]:
             if not line or ":" not in line:
                 continue
             pkg, deps_str = line.split(":", 1)
-            graph[pkg.strip()] = [d.strip() for d in deps_str.split(",") if d.strip()]
+            graph[pkg.strip()] = [
+                d.strip() for d in deps_str.split(",") if d.strip()
+            ]
     return graph
 
 
@@ -22,21 +24,28 @@ def build_graph(
     filter_str: Optional[str] = None,
     visited: Optional[Set[str]] = None
 ) -> Dict:
-    """Рекурсивно строит дерево зависимостей (DFS)."""
+    """Рекурсивно строит дерево зависимостей (DFS).
+
+    Args:
+        package: имя пакета.
+        test_graph: словарь для тестового режима.
+        filter_str: подстрока для исключения пакетов.
+        visited: множество посещенных узлов (для поиска циклов).
+    """
     if visited is None:
         visited = set()
 
-    # 1. Фильтрация
+    # Фильтрация
     if filter_str and filter_str in package:
         return {"__filtered__": package}
 
-    # 2. Обработка циклов
+    # Обработка циклов
     if package in visited:
         return {"__cycle__": package}
 
     visited.add(package)
 
-    # 3. Получение прямых зависимостей
+    # Получение прямых зависимостей
     deps = []
     if test_graph is not None:
         deps = test_graph.get(package, [])
@@ -47,31 +56,26 @@ def build_graph(
         except NpmError:
             deps = []
 
-    # 4. Рекурсивный обход
+    # Рекурсивный обход
     children = {}
     for dep in deps:
-        children[dep] = build_graph(dep, test_graph, filter_str, visited)
+        children[dep] = build_graph(
+            dep, test_graph, filter_str, visited
+        )
 
-    visited.remove(package)  # Возвращаем для других веток
-    return children  # <--- ВАЖНО: возвращаем только детей, без самого пакета
+    visited.remove(package)
+    return children
+
+
 def find_reverse_dependencies(tree: dict, target: str) -> List[str]:
-    """Находит все пакеты, которые зависят от target (прямо или косвенно).
-    
-    Args:
-        tree: дерево зависимостей.
-        target: имя искомого пакета.
-        
-    Returns:
-        Список имен пакетов-родителей.
-    """
+    """Находит пакеты, которые зависят от target."""
     result = set()
 
     def dfs(node: dict, current_path: list) -> None:
+        """Вспомогательная функция обхода."""
         for pkg, children in node.items():
             if pkg == target and current_path:
-                # Если нашли target, добавляем всех его предков
                 result.update(current_path)
-            
             if isinstance(children, dict):
                 dfs(children, current_path + [pkg])
 
